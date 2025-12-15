@@ -37,7 +37,7 @@ estab_cap = st.sidebar.number_input(
 
 dias_festivos_default = [
     "2025-01-01", "2025-04-18", "2025-05-01", "2025-08-15",
-    "2025-10-12", "2025-10-13", "2025-11-01", "2025-12-08", "2025-12-25"
+    "2025-10-12", "2025-10-13", "2025-11-01", "2025-12-25","2025-12-24","2025-12-31","2026-01-01"
 ]
 dias_festivos_list = st.sidebar.multiselect(
     "Selecciona los días festivos",
@@ -1174,6 +1174,7 @@ if uploaded_file is not None:
             file_name="planificacion_lotes.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
