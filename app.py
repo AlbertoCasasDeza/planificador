@@ -1016,7 +1016,6 @@ if uploaded_file is not None:
                 if c in df_resumen_dia.columns:
                     df_resumen_dia[c] = pd.to_numeric(df_resumen_dia[c], errors="coerce").fillna(0).astype(int)
 
-            df_resumen_dia["NETO_UNDS_(ENT-SAL)"] = df_resumen_dia["ENTRADA_UNDS"] - df_resumen_dia["SALIDA_UNDS"]
             df_resumen_dia = df_resumen_dia.sort_values("FECHA").reset_index(drop=True)
 
             st.dataframe(
@@ -1029,7 +1028,6 @@ if uploaded_file is not None:
                     "LOTES_ENTRADA": st.column_config.NumberColumn("Lotes entrada"),
                     "SALIDA_UNDS": st.column_config.NumberColumn("Salida (unds)"),
                     "LOTES_SALIDA": st.column_config.NumberColumn("Lotes salida"),
-                    "NETO_UNDS_(ENT-SAL)": st.column_config.NumberColumn("Neto unds (Entrada - Salida)"),
                 }
             )
 
@@ -1268,6 +1266,7 @@ if uploaded_file is not None:
             file_name="planificacion_lotes.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
