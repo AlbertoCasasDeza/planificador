@@ -949,6 +949,100 @@ if uploaded_file is not None:
             use_container_width=True,
             key="plan_editor"  # clave para que Streamlit rerenderice correctamente
         )
+        # ===============================
+        # 📅 Tabla resumen por día (ENTRADA/SALIDA SAL) + nº lotes
+        # ===============================
+        st.subheader("📅 Resumen diario · Entrada y salida de SAL")
+
+        required = {"UNDS", "ENTRADA_SAL", "SALIDA_SAL"}
+        if required.issubset(df_editable.columns):
+            tmp = df_editable.copy()
+
+            # Asegurar tipos por si el editor devolvió strings
+            tmp["ENTRADA_SAL"] = pd.to_datetime(tmp["ENTRADA_SAL"], errors="coerce").dt.normalize()
+            tmp["SALIDA_SAL"]  = pd.to_datetime(tmp["SALIDA_SAL"],  errors="coerce").dt.normalize()
+            tmp["UNDS"]        = pd.to_numeric(tmp["UNDS"], errors="coerce").fillna(0).astype(int)
+
+            # Para contar lotes: si no existe columna LOTE, contamos filas
+            has_lote = "LOTE" in tmp.columns
+
+            # ---- ENTRADAS por día
+            ent_df = tmp.dropna(subset=["ENTRADA_SAL"]).copy()
+            if not ent_df.empty:
+                if has_lote:
+                    ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
+                        ENTRADA_UNDS=("UNDS", "sum"),
+                        LOTES_ENTRADA=("LOTE", "nunique"),
+                    )
+                else:
+                    ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
+                        ENTRADA_UNDS=("UNDS", "sum"),
+                        LOTES_ENTRADA=("UNDS", "size"),
+                    )
+            else:
+                ent_daily = pd.DataFrame(columns=["ENTRADA_UNDS", "LOTES_ENTRADA"])
+
+            # ---- SALIDAS por día
+            sal_df = tmp.dropna(subset=["SALIDA_SAL"]).copy()
+            if not sal_df.empty:
+                if has_lote:
+                    sal_daily = sal_df.groupby("SALIDA_SAL").agg(
+                        SALIDA_UNDS=("UNDS", "sum"),
+                        LOTES_SALIDA=("LOTE", "nunique"),
+                    )
+                else:
+                    sal_daily = sal_df.groupby("SALIDA_SAL").agg(
+                        SALIDA_UNDS=("UNDS", "sum"),
+                        LOTES_SALIDA=("UNDS", "size"),
+                    )
+            else:
+                sal_daily = pd.DataFrame(columns=["SALIDA_UNDS", "LOTES_SALIDA"])
+
+            # ---- Unir en una sola tabla por FECHA
+            df_resumen_dia = (
+                pd.concat([ent_daily, sal_daily], axis=1)
+                  .fillna(0)
+                  .reset_index()
+            )
+
+            # La columna de fecha tras reset_index se llama como el índice original:
+            # si venía de ENTRADA_SAL o SALIDA_SAL, puede quedar como "ENTRADA_SAL".
+            # Normalizamos a "FECHA".
+            first_col = df_resumen_dia.columns[0]
+            df_resumen_dia = df_resumen_dia.rename(columns={first_col: "FECHA"})
+
+            # Tipos y orden
+            for c in ["ENTRADA_UNDS", "SALIDA_UNDS", "LOTES_ENTRADA", "LOTES_SALIDA"]:
+                if c in df_resumen_dia.columns:
+                    df_resumen_dia[c] = pd.to_numeric(df_resumen_dia[c], errors="coerce").fillna(0).astype(int)
+
+            df_resumen_dia["NETO_UNDS_(ENT-SAL)"] = df_resumen_dia["ENTRADA_UNDS"] - df_resumen_dia["SALIDA_UNDS"]
+            df_resumen_dia = df_resumen_dia.sort_values("FECHA").reset_index(drop=True)
+
+            st.dataframe(
+                df_resumen_dia,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "FECHA": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
+                    "ENTRADA_UNDS": st.column_config.NumberColumn("Entrada (unds)"),
+                    "LOTES_ENTRADA": st.column_config.NumberColumn("Lotes entrada"),
+                    "SALIDA_UNDS": st.column_config.NumberColumn("Salida (unds)"),
+                    "LOTES_SALIDA": st.column_config.NumberColumn("Lotes salida"),
+                    "NETO_UNDS_(ENT-SAL)": st.column_config.NumberColumn("Neto unds (Entrada - Salida)"),
+                }
+            )
+
+            # Descarga opcional
+            resumen_xlsx = generar_excel(df_resumen_dia, "resumen_diario_sal.xlsx")
+            st.download_button(
+                "💾 Descargar resumen diario (Excel)",
+                data=resumen_xlsx,
+                file_name="resumen_diario_sal.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.info("No se puede construir el resumen diario: faltan columnas UNDS / ENTRADA_SAL / SALIDA_SAL.")
 
         # -------------------------------
         # Gráfico: Entradas vs Salidas por lote/fecha
@@ -1174,6 +1268,7 @@ if uploaded_file is not None:
             file_name="planificacion_lotes.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
