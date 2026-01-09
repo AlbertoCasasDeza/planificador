@@ -7,7 +7,7 @@ from io import BytesIO
 from collections import Counter
 
 st.set_page_config(page_title="Planificador Lotes Naturiber", layout="wide")
-st.title("🧠 Planificador de Lotes Salazón Naturiber2")
+st.title("🧠 Planificador de Lotes Salazón Naturiber")
 
 # -------------------------------
 # Panel de configuración (globales)
@@ -1174,6 +1174,7 @@ if uploaded_file is not None:
             file_name="planificacion_lotes.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
