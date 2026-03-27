@@ -251,7 +251,7 @@ def planificar_filas_na(
 
     # REGLAS ESPECIALES DE ENTRADA COMÚN
     # - Grupos unitarios (mismo día por código):
-    #   ["JBSPRCLC-MEX"], ["JCIVRROD-MEX"], ["JBCPRCLC-MEX"]
+    #   ["JBSPRCLC-MEX"], ["JCIVRROD-MEX"], ["JBCPRCLC-MEX"], ["JCIVR USA ORES"], ["JBSPR ORES USA"], ["JCIVR-USA"]
     # - Grupo conjunto (mismo día entre ambos, con fallback por separado):
     #   ["JCIVRPORCISAN", "PCIVRPORCISAN"]
     def _aplicar_entrada_comun_para_grupo(codigos, marcar_si_falla=False):
@@ -412,7 +412,10 @@ def planificar_filas_na(
     _aplicar_entrada_comun_para_grupo(["JBSPRCLC-MEX"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JCIVRROD-MEX"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JBCPRCLC-MEX"], marcar_si_falla=False)
-
+    _aplicar_entrada_comun_para_grupo(["JCIVR USA ORES"], marcar_si_falla=False)
+    _aplicar_entrada_comun_para_grupo(["JBSPR ORES USA"], marcar_si_falla=False)
+    _aplicar_entrada_comun_para_grupo(["JCIVR-USA"], marcar_si_falla=False)
+    
     # - Grupo conjunto (dos códigos al MISMO día entre sí). Si no cabe, fallback por separado.
     exito_conjunto = _aplicar_entrada_comun_para_grupo(
         ["JCIVRPORCISAN", "PCIVRPORCISAN"], marcar_si_falla=False
