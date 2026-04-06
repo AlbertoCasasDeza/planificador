@@ -959,7 +959,7 @@ if uploaded_file is not None:
             df_guardar[c] = pd.to_numeric(df_guardar[c], errors="coerce").astype("Int64")
 
         if "LOTE_NO_ENCAJA" in df_guardar.columns:
-            df_guardar["LOTE_NO_ENCAJA"] = df_guardar["LOTE_NO_ENCAJA"].astype("object")
+            df_guardar["LOTE_NO_ENCAJA"] = df_guardar["LOTE_NO_ENCAJA"].astype("string")
 
         st.session_state["df_planificado"] = df_guardar
         df_editable = df_guardar.copy()
