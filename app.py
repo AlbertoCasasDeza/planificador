@@ -169,12 +169,21 @@ def planificar_filas_na(
 ):
     df_corr = df_plan.copy()
 
-    # Asegurar columna de texto para evitar errores al asignar "Sí"/"No"
-    if "LOTE_NO_ENCAJA" not in df_corr.columns:
-        df_corr["LOTE_NO_ENCAJA"] = pd.Series(pd.NA, index=df_corr.index, dtype="object")
-    else:
-        df_corr["LOTE_NO_ENCAJA"] = df_corr["LOTE_NO_ENCAJA"].astype("object")
+    # -----------------------------
+    # Blindaje de tipos
+    # -----------------------------
+    for c in ["DIA", "ENTRADA_SAL", "SALIDA_SAL"]:
+        if c in df_corr.columns:
+            df_corr[c] = pd.to_datetime(df_corr[c], errors="coerce")
 
+    for c in ["UNDS", "DIAS_SAL_OPTIMOS", "DIAS_SAL", "DIAS_ALMACENADOS", "DIFERENCIA_DIAS_SAL"]:
+        if c in df_corr.columns:
+            df_corr[c] = pd.to_numeric(df_corr[c], errors="coerce").astype("Int64")
+
+    if "LOTE_NO_ENCAJA" not in df_corr.columns:
+        df_corr["LOTE_NO_ENCAJA"] = pd.Series(pd.NA, index=df_corr.index, dtype="string")
+    else:
+        df_corr["LOTE_NO_ENCAJA"] = df_corr["LOTE_NO_ENCAJA"].astype("string")
     # Cargas ya planificadas (se respetan)
     carga_entrada = df_corr.dropna(subset=["ENTRADA_SAL"]).groupby("ENTRADA_SAL")["UNDS"].sum().to_dict()
     carga_salida = df_corr.dropna(subset=["SALIDA_SAL"]).groupby("SALIDA_SAL")["UNDS"].sum().to_dict()
