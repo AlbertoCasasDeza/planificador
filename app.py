@@ -1,4 +1,3 @@
-# app.py
 import pandas as pd
 import streamlit as st
 from datetime import timedelta
@@ -155,6 +154,44 @@ def generar_excel(df_out, filename="archivo.xlsx"):
     output.seek(0)
     return output
 
+def init_override_df_fecha_cap12(state_key):
+    if state_key not in st.session_state:
+        st.session_state[state_key] = pd.DataFrame({
+            "FECHA": pd.Series(dtype="object"),
+            "CAP1": pd.Series(dtype="float"),
+            "CAP2": pd.Series(dtype="float"),
+        })
+
+def init_override_df_fecha_cap(state_key):
+    if state_key not in st.session_state:
+        st.session_state[state_key] = pd.DataFrame({
+            "FECHA": pd.Series(dtype="object"),
+            "CAP": pd.Series(dtype="float"),
+        })
+
+def normalizar_override_ent_sal(df_in):
+    df_out = df_in.copy()
+
+    if "FECHA" in df_out.columns:
+        df_out["FECHA"] = pd.to_datetime(df_out["FECHA"], errors="coerce")
+
+    for c in ["CAP1", "CAP2"]:
+        if c in df_out.columns:
+            df_out[c] = pd.to_numeric(df_out[c], errors="coerce")
+
+    return df_out
+
+def normalizar_override_estab(df_in):
+    df_out = df_in.copy()
+
+    if "FECHA" in df_out.columns:
+        df_out["FECHA"] = pd.to_datetime(df_out["FECHA"], errors="coerce")
+
+    if "CAP" in df_out.columns:
+        df_out["CAP"] = pd.to_numeric(df_out["CAP"], errors="coerce")
+
+    return df_out
+
 # -------------------------------
 # Planificador
 # -------------------------------
@@ -184,6 +221,7 @@ def planificar_filas_na(
         df_corr["LOTE_NO_ENCAJA"] = pd.Series(pd.NA, index=df_corr.index, dtype="string")
     else:
         df_corr["LOTE_NO_ENCAJA"] = df_corr["LOTE_NO_ENCAJA"].astype("string")
+
     # Cargas ya planificadas (se respetan)
     carga_entrada = df_corr.dropna(subset=["ENTRADA_SAL"]).groupby("ENTRADA_SAL")["UNDS"].sum().to_dict()
     carga_salida = df_corr.dropna(subset=["SALIDA_SAL"]).groupby("SALIDA_SAL")["UNDS"].sum().to_dict()
@@ -716,24 +754,13 @@ if uploaded_file is not None:
     # ---- Overrides FECHA ENTRADA
     st.sidebar.markdown("### 📅 Overrides capacidad ENTRADA (opcional)")
 
-    if "cap_overrides_ent_df" not in st.session_state:
-        st.session_state.cap_overrides_ent_df = pd.DataFrame({
-            "FECHA": pd.to_datetime(pd.Series([], dtype="datetime64[ns]")),
-            "CAP1": pd.Series([], dtype="Int64"),
-            "CAP2": pd.Series([], dtype="Int64"),
-        })
-    st.session_state.cap_overrides_ent_df["FECHA"] = pd.to_datetime(
-        st.session_state.cap_overrides_ent_df["FECHA"], errors="coerce"
-    )
-    for c in ("CAP1", "CAP2"):
-        st.session_state.cap_overrides_ent_df[c] = pd.to_numeric(
-            st.session_state.cap_overrides_ent_df[c], errors="coerce"
-        ).astype("Int64")
+    init_override_df_fecha_cap12("cap_overrides_ent_df")
 
-    cap_overrides_ent_df = st.sidebar.data_editor(
-        st.session_state.cap_overrides_ent_df,
+    cap_overrides_ent_df_edit = st.sidebar.data_editor(
+        st.session_state["cap_overrides_ent_df"],
         num_rows="dynamic",
         use_container_width=True,
+        hide_index=True,
         column_config={
             "FECHA": st.column_config.DateColumn("Fecha (entrada)", format="YYYY-MM-DD"),
             "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
@@ -742,27 +769,19 @@ if uploaded_file is not None:
         key="cap_overrides_ent_editor"
     )
 
+    st.session_state["cap_overrides_ent_df"] = normalizar_override_ent_sal(cap_overrides_ent_df_edit)
+    cap_overrides_ent_df = st.session_state["cap_overrides_ent_df"]
+
     # ---- Overrides FECHA SALIDA
     st.sidebar.markdown("### 📅 Overrides capacidad SALIDA (opcional)")
 
-    if "cap_overrides_sal_df" not in st.session_state:
-        st.session_state.cap_overrides_sal_df = pd.DataFrame({
-            "FECHA": pd.to_datetime(pd.Series([], dtype="datetime64[ns]")),
-            "CAP1": pd.Series([], dtype="Int64"),
-            "CAP2": pd.Series([], dtype="Int64"),
-        })
-    st.session_state.cap_overrides_sal_df["FECHA"] = pd.to_datetime(
-        st.session_state.cap_overrides_sal_df["FECHA"], errors="coerce"
-    )
-    for c in ("CAP1", "CAP2"):
-        st.session_state.cap_overrides_sal_df[c] = pd.to_numeric(
-            st.session_state.cap_overrides_sal_df[c], errors="coerce"
-        ).astype("Int64")
+    init_override_df_fecha_cap12("cap_overrides_sal_df")
 
-    cap_overrides_sal_df = st.sidebar.data_editor(
-        st.session_state.cap_overrides_sal_df,
+    cap_overrides_sal_df_edit = st.sidebar.data_editor(
+        st.session_state["cap_overrides_sal_df"],
         num_rows="dynamic",
         use_container_width=True,
+        hide_index=True,
         column_config={
             "FECHA": st.column_config.DateColumn("Fecha (salida)", format="YYYY-MM-DD"),
             "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
@@ -771,25 +790,19 @@ if uploaded_file is not None:
         key="cap_overrides_sal_editor"
     )
 
+    st.session_state["cap_overrides_sal_df"] = normalizar_override_ent_sal(cap_overrides_sal_df_edit)
+    cap_overrides_sal_df = st.session_state["cap_overrides_sal_df"]
+
     # ---- Overrides FECHA ESTABILIZACIÓN
     st.sidebar.markdown("### 📅 Overrides capacidad ESTABILIZACIÓN (opcional)")
 
-    if "cap_overrides_estab_df" not in st.session_state:
-        st.session_state.cap_overrides_estab_df = pd.DataFrame({
-            "FECHA": pd.to_datetime(pd.Series([], dtype="datetime64[ns]")),
-            "CAP": pd.Series([], dtype="Int64"),
-        })
-    st.session_state.cap_overrides_estab_df["FECHA"] = pd.to_datetime(
-        st.session_state.cap_overrides_estab_df["FECHA"], errors="coerce"
-    )
-    st.session_state.cap_overrides_estab_df["CAP"] = pd.to_numeric(
-        st.session_state.cap_overrides_estab_df["CAP"], errors="coerce"
-    ).astype("Int64")
+    init_override_df_fecha_cap("cap_overrides_estab_df")
 
-    cap_overrides_estab_df = st.sidebar.data_editor(
-        st.session_state.cap_overrides_estab_df,
+    cap_overrides_estab_df_edit = st.sidebar.data_editor(
+        st.session_state["cap_overrides_estab_df"],
         num_rows="dynamic",
         use_container_width=True,
+        hide_index=True,
         column_config={
             "FECHA": st.column_config.DateColumn("Fecha (estabilización)", format="YYYY-MM-DD"),
             "CAP": st.column_config.NumberColumn("Capacidad estabilización (unds)", step=50, min_value=0),
@@ -797,36 +810,36 @@ if uploaded_file is not None:
         key="cap_overrides_estab_editor"
     )
 
+    st.session_state["cap_overrides_estab_df"] = normalizar_override_estab(cap_overrides_estab_df_edit)
+    cap_overrides_estab_df = st.session_state["cap_overrides_estab_df"]
+
     cap_overrides_ent = {}
     if not cap_overrides_ent_df.empty:
         tmp = cap_overrides_ent_df.dropna(subset=["FECHA"]).copy()
-        tmp["FECHA"] = pd.to_datetime(tmp["FECHA"]).dt.normalize()
+        tmp["FECHA"] = pd.to_datetime(tmp["FECHA"], errors="coerce").dt.normalize()
         for _, r in tmp.iterrows():
             cap_overrides_ent[r["FECHA"]] = {
-                "CAP1": (int(r["CAP1"]) if pd.notna(r["CAP1"]) else None),
-                "CAP2": (int(r["CAP2"]) if pd.notna(r["CAP2"]) else None),
+                "CAP1": int(r["CAP1"]) if pd.notna(r["CAP1"]) else None,
+                "CAP2": int(r["CAP2"]) if pd.notna(r["CAP2"]) else None,
             }
-    st.session_state.cap_overrides_ent_df = cap_overrides_ent_df
 
     cap_overrides_sal = {}
     if not cap_overrides_sal_df.empty:
         tmp2 = cap_overrides_sal_df.dropna(subset=["FECHA"]).copy()
-        tmp2["FECHA"] = pd.to_datetime(tmp2["FECHA"]).dt.normalize()
+        tmp2["FECHA"] = pd.to_datetime(tmp2["FECHA"], errors="coerce").dt.normalize()
         for _, r in tmp2.iterrows():
             cap_overrides_sal[r["FECHA"]] = {
-                "CAP1": (int(r["CAP1"]) if pd.notna(r["CAP1"]) else None),
-                "CAP2": (int(r["CAP2"]) if pd.notna(r["CAP2"]) else None),
+                "CAP1": int(r["CAP1"]) if pd.notna(r["CAP1"]) else None,
+                "CAP2": int(r["CAP2"]) if pd.notna(r["CAP2"]) else None,
             }
-    st.session_state.cap_overrides_sal_df = cap_overrides_sal_df
 
     estab_cap_overrides = {}
     if not cap_overrides_estab_df.empty:
         tmp3 = cap_overrides_estab_df.dropna(subset=["FECHA"]).copy()
-        tmp3["FECHA"] = pd.to_datetime(tmp3["FECHA"]).dt.normalize()
+        tmp3["FECHA"] = pd.to_datetime(tmp3["FECHA"], errors="coerce").dt.normalize()
         for _, r in tmp3.iterrows():
             if pd.notna(r["CAP"]):
                 estab_cap_overrides[r["FECHA"]] = int(r["CAP"])
-    st.session_state.cap_overrides_estab_df = cap_overrides_estab_df
 
     # ===============================
     # Planificación incremental
