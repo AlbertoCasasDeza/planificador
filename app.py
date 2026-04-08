@@ -745,7 +745,7 @@ if uploaded_file is not None:
         st.sidebar.info("No se encontró columna PRODUCTO. Se aplicará solo el límite GLOBAL.")
 
     # ---- Overrides FECHA ENTRADA
-    st.sidebar.markdown("### 📅 Overrides capacidad ENTRADA (opcional)")
+    st.sidebar.markdown("### 📅 Límites capacidad ENTRADA (opcional)")
     init_override_df_fecha_cap12("cap_overrides_ent_df")
 
     with st.sidebar.form("form_overrides_entrada"):
@@ -761,7 +761,7 @@ if uploaded_file is not None:
             },
             key="cap_overrides_ent_editor_form"
         )
-        guardar_overrides_ent = st.form_submit_button("Guardar overrides ENTRADA")
+        guardar_overrides_ent = st.form_submit_button("Guardar límites ENTRADA")
 
     if guardar_overrides_ent:
         st.session_state["cap_overrides_ent_df"] = limpiar_filas_vacias_overrides(
@@ -771,7 +771,7 @@ if uploaded_file is not None:
     cap_overrides_ent_df = st.session_state["cap_overrides_ent_df"]
 
     # ---- Overrides FECHA SALIDA
-    st.sidebar.markdown("### 📅 Overrides capacidad SALIDA (opcional)")
+    st.sidebar.markdown("### 📅 Límites capacidad SALIDA (opcional)")
     init_override_df_fecha_cap12("cap_overrides_sal_df")
 
     with st.sidebar.form("form_overrides_salida"):
@@ -787,7 +787,7 @@ if uploaded_file is not None:
             },
             key="cap_overrides_sal_editor_form"
         )
-        guardar_overrides_sal = st.form_submit_button("Guardar overrides SALIDA")
+        guardar_overrides_sal = st.form_submit_button("Guardar límites SALIDA")
 
     if guardar_overrides_sal:
         st.session_state["cap_overrides_sal_df"] = limpiar_filas_vacias_overrides(
@@ -797,7 +797,7 @@ if uploaded_file is not None:
     cap_overrides_sal_df = st.session_state["cap_overrides_sal_df"]
 
     # ---- Overrides FECHA ESTABILIZACIÓN
-    st.sidebar.markdown("### 📅 Overrides capacidad ESTABILIZACIÓN (opcional)")
+    st.sidebar.markdown("### 📅 Límites capacidad ESTABILIZACIÓN (opcional)")
     init_override_df_fecha_cap("cap_overrides_estab_df")
 
     with st.sidebar.form("form_overrides_estab"):
@@ -812,7 +812,7 @@ if uploaded_file is not None:
             },
             key="cap_overrides_estab_editor_form"
         )
-        guardar_overrides_estab = st.form_submit_button("Guardar overrides ESTABILIZACIÓN")
+        guardar_overrides_estab = st.form_submit_button("Guardar límites ESTABILIZACIÓN")
 
     if guardar_overrides_estab:
         st.session_state["cap_overrides_estab_df"] = limpiar_filas_vacias_overrides(
