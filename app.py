@@ -169,28 +169,21 @@ def init_override_df_fecha_cap(state_key):
             "CAP": pd.Series(dtype="float"),
         })
 
-def normalizar_override_ent_sal(df_in):
+def limpiar_filas_vacias_overrides(df_in, cols_valor):
     df_out = df_in.copy()
 
     if "FECHA" in df_out.columns:
         df_out["FECHA"] = pd.to_datetime(df_out["FECHA"], errors="coerce")
 
-    for c in ["CAP1", "CAP2"]:
+    for c in cols_valor:
         if c in df_out.columns:
             df_out[c] = pd.to_numeric(df_out[c], errors="coerce")
 
-    return df_out
+    cols_check = ["FECHA"] + [c for c in cols_valor if c in df_out.columns]
+    if cols_check:
+        df_out = df_out.dropna(how="all", subset=cols_check)
 
-def normalizar_override_estab(df_in):
-    df_out = df_in.copy()
-
-    if "FECHA" in df_out.columns:
-        df_out["FECHA"] = pd.to_datetime(df_out["FECHA"], errors="coerce")
-
-    if "CAP" in df_out.columns:
-        df_out["CAP"] = pd.to_numeric(df_out["CAP"], errors="coerce")
-
-    return df_out
+    return df_out.reset_index(drop=True)
 
 # -------------------------------
 # Planificador
@@ -753,64 +746,79 @@ if uploaded_file is not None:
 
     # ---- Overrides FECHA ENTRADA
     st.sidebar.markdown("### 📅 Overrides capacidad ENTRADA (opcional)")
-
     init_override_df_fecha_cap12("cap_overrides_ent_df")
 
-    cap_overrides_ent_df_edit = st.sidebar.data_editor(
-        st.session_state["cap_overrides_ent_df"],
-        num_rows="dynamic",
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "FECHA": st.column_config.DateColumn("Fecha (entrada)", format="YYYY-MM-DD"),
-            "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
-            "CAP2": st.column_config.NumberColumn("Capacidad 2º intento", step=50, min_value=0),
-        },
-        key="cap_overrides_ent_editor"
-    )
+    with st.sidebar.form("form_overrides_entrada"):
+        cap_overrides_ent_df_edit = st.data_editor(
+            st.session_state["cap_overrides_ent_df"],
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "FECHA": st.column_config.DateColumn("Fecha (entrada)", format="YYYY-MM-DD"),
+                "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
+                "CAP2": st.column_config.NumberColumn("Capacidad 2º intento", step=50, min_value=0),
+            },
+            key="cap_overrides_ent_editor_form"
+        )
+        guardar_overrides_ent = st.form_submit_button("Guardar overrides ENTRADA")
 
-    st.session_state["cap_overrides_ent_df"] = normalizar_override_ent_sal(cap_overrides_ent_df_edit)
+    if guardar_overrides_ent:
+        st.session_state["cap_overrides_ent_df"] = limpiar_filas_vacias_overrides(
+            cap_overrides_ent_df_edit, ["CAP1", "CAP2"]
+        )
+
     cap_overrides_ent_df = st.session_state["cap_overrides_ent_df"]
 
     # ---- Overrides FECHA SALIDA
     st.sidebar.markdown("### 📅 Overrides capacidad SALIDA (opcional)")
-
     init_override_df_fecha_cap12("cap_overrides_sal_df")
 
-    cap_overrides_sal_df_edit = st.sidebar.data_editor(
-        st.session_state["cap_overrides_sal_df"],
-        num_rows="dynamic",
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "FECHA": st.column_config.DateColumn("Fecha (salida)", format="YYYY-MM-DD"),
-            "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
-            "CAP2": st.column_config.NumberColumn("Capacidad 2º intento", step=50, min_value=0),
-        },
-        key="cap_overrides_sal_editor"
-    )
+    with st.sidebar.form("form_overrides_salida"):
+        cap_overrides_sal_df_edit = st.data_editor(
+            st.session_state["cap_overrides_sal_df"],
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "FECHA": st.column_config.DateColumn("Fecha (salida)", format="YYYY-MM-DD"),
+                "CAP1": st.column_config.NumberColumn("Capacidad 1º intento", step=50, min_value=0),
+                "CAP2": st.column_config.NumberColumn("Capacidad 2º intento", step=50, min_value=0),
+            },
+            key="cap_overrides_sal_editor_form"
+        )
+        guardar_overrides_sal = st.form_submit_button("Guardar overrides SALIDA")
 
-    st.session_state["cap_overrides_sal_df"] = normalizar_override_ent_sal(cap_overrides_sal_df_edit)
+    if guardar_overrides_sal:
+        st.session_state["cap_overrides_sal_df"] = limpiar_filas_vacias_overrides(
+            cap_overrides_sal_df_edit, ["CAP1", "CAP2"]
+        )
+
     cap_overrides_sal_df = st.session_state["cap_overrides_sal_df"]
 
     # ---- Overrides FECHA ESTABILIZACIÓN
     st.sidebar.markdown("### 📅 Overrides capacidad ESTABILIZACIÓN (opcional)")
-
     init_override_df_fecha_cap("cap_overrides_estab_df")
 
-    cap_overrides_estab_df_edit = st.sidebar.data_editor(
-        st.session_state["cap_overrides_estab_df"],
-        num_rows="dynamic",
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "FECHA": st.column_config.DateColumn("Fecha (estabilización)", format="YYYY-MM-DD"),
-            "CAP": st.column_config.NumberColumn("Capacidad estabilización (unds)", step=50, min_value=0),
-        },
-        key="cap_overrides_estab_editor"
-    )
+    with st.sidebar.form("form_overrides_estab"):
+        cap_overrides_estab_df_edit = st.data_editor(
+            st.session_state["cap_overrides_estab_df"],
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "FECHA": st.column_config.DateColumn("Fecha (estabilización)", format="YYYY-MM-DD"),
+                "CAP": st.column_config.NumberColumn("Capacidad estabilización (unds)", step=50, min_value=0),
+            },
+            key="cap_overrides_estab_editor_form"
+        )
+        guardar_overrides_estab = st.form_submit_button("Guardar overrides ESTABILIZACIÓN")
 
-    st.session_state["cap_overrides_estab_df"] = normalizar_override_estab(cap_overrides_estab_df_edit)
+    if guardar_overrides_estab:
+        st.session_state["cap_overrides_estab_df"] = limpiar_filas_vacias_overrides(
+            cap_overrides_estab_df_edit, ["CAP"]
+        )
+
     cap_overrides_estab_df = st.session_state["cap_overrides_estab_df"]
 
     cap_overrides_ent = {}
