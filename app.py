@@ -15,13 +15,13 @@ st.sidebar.header("Parámetros de planificación")
 
 # Capacidad global ENTRADA
 st.sidebar.subheader("Capacidad global · ENTRADA")
-cap_ent_1 = st.sidebar.number_input("Entrada · 1º intento", value=3100, step=100, min_value=0)
-cap_ent_2 = st.sidebar.number_input("Entrada · 2º intento", value=3500, step=100, min_value=0)
+cap_ent_1 = st.sidebar.number_input("Entrada · 1º intento", value=3300, step=100, min_value=0)
+cap_ent_2 = st.sidebar.number_input("Entrada · 2º intento", value=3700, step=100, min_value=0)
 
 # Capacidad global SALIDA
 st.sidebar.subheader("Capacidad global · SALIDA")
-cap_sal_1 = st.sidebar.number_input("Salida · 1º intento", value=3100, step=100, min_value=0)
-cap_sal_2 = st.sidebar.number_input("Salida · 2º intento", value=3500, step=100, min_value=0)
+cap_sal_1 = st.sidebar.number_input("Salida · 1º intento", value=3500, step=100, min_value=0)
+cap_sal_2 = st.sidebar.number_input("Salida · 2º intento", value=3850, step=100, min_value=0)
 
 # Límite GLOBAL en días naturales entre DIA (recepción) y ENTRADA_SAL
 st.sidebar.subheader("Días máx. almacenamiento (GLOBAL)")
