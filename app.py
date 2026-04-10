@@ -999,36 +999,59 @@ if uploaded_file is not None:
             tmp["UNDS"] = pd.to_numeric(tmp["UNDS"], errors="coerce").fillna(0).astype(int)
 
             has_lote = "LOTE" in tmp.columns
+            has_producto = "PRODUCTO" in tmp.columns
+
+            if has_producto:
+                tmp["ES_JAMON"] = tmp["PRODUCTO"].astype(str).str.upper().str.startswith("J")
+                tmp["ES_PALETA"] = tmp["PRODUCTO"].astype(str).str.upper().str.startswith("P")
+            else:
+                tmp["ES_JAMON"] = False
+                tmp["ES_PALETA"] = False
+
+            tmp["UNDS_JAMON"] = tmp["UNDS"].where(tmp["ES_JAMON"], 0)
+            tmp["UNDS_PALETA"] = tmp["UNDS"].where(tmp["ES_PALETA"], 0)
 
             ent_df = tmp.dropna(subset=["ENTRADA_SAL"]).copy()
             if not ent_df.empty:
                 if has_lote:
                     ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
                         ENTRADA_UNDS=("UNDS", "sum"),
+                        ENTRADA_JAMON=("UNDS_JAMON", "sum"),
+                        ENTRADA_PALETA=("UNDS_PALETA", "sum"),
                         LOTES_ENTRADA=("LOTE", "nunique"),
                     )
                 else:
                     ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
                         ENTRADA_UNDS=("UNDS", "sum"),
+                        ENTRADA_JAMON=("UNDS_JAMON", "sum"),
+                        ENTRADA_PALETA=("UNDS_PALETA", "sum"),
                         LOTES_ENTRADA=("UNDS", "size"),
                     )
             else:
-                ent_daily = pd.DataFrame(columns=["ENTRADA_UNDS", "LOTES_ENTRADA"])
+                ent_daily = pd.DataFrame(columns=[
+                    "ENTRADA_UNDS", "ENTRADA_JAMON", "ENTRADA_PALETA", "LOTES_ENTRADA"
+                ])
 
             sal_df = tmp.dropna(subset=["SALIDA_SAL"]).copy()
             if not sal_df.empty:
                 if has_lote:
                     sal_daily = sal_df.groupby("SALIDA_SAL").agg(
                         SALIDA_UNDS=("UNDS", "sum"),
+                        SALIDA_JAMON=("UNDS_JAMON", "sum"),
+                        SALIDA_PALETA=("UNDS_PALETA", "sum"),
                         LOTES_SALIDA=("LOTE", "nunique"),
                     )
                 else:
                     sal_daily = sal_df.groupby("SALIDA_SAL").agg(
                         SALIDA_UNDS=("UNDS", "sum"),
+                        SALIDA_JAMON=("UNDS_JAMON", "sum"),
+                        SALIDA_PALETA=("UNDS_PALETA", "sum"),
                         LOTES_SALIDA=("UNDS", "size"),
                     )
             else:
-                sal_daily = pd.DataFrame(columns=["SALIDA_UNDS", "LOTES_SALIDA"])
+                sal_daily = pd.DataFrame(columns=[
+                    "SALIDA_UNDS", "SALIDA_JAMON", "SALIDA_PALETA", "LOTES_SALIDA"
+                ])
 
             df_resumen_dia = (
                 pd.concat([ent_daily, sal_daily], axis=1)
@@ -1039,7 +1062,10 @@ if uploaded_file is not None:
             first_col = df_resumen_dia.columns[0]
             df_resumen_dia = df_resumen_dia.rename(columns={first_col: "FECHA"})
 
-            for c in ["ENTRADA_UNDS", "SALIDA_UNDS", "LOTES_ENTRADA", "LOTES_SALIDA"]:
+            for c in [
+                "ENTRADA_UNDS", "ENTRADA_JAMON", "ENTRADA_PALETA", "LOTES_ENTRADA",
+                "SALIDA_UNDS", "SALIDA_JAMON", "SALIDA_PALETA", "LOTES_SALIDA"
+            ]:
                 if c in df_resumen_dia.columns:
                     df_resumen_dia[c] = pd.to_numeric(df_resumen_dia[c], errors="coerce").fillna(0).astype(int)
 
@@ -1051,9 +1077,13 @@ if uploaded_file is not None:
                 hide_index=True,
                 column_config={
                     "FECHA": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
-                    "ENTRADA_UNDS": st.column_config.NumberColumn("Entrada (unds)"),
+                    "ENTRADA_UNDS": st.column_config.NumberColumn("Entrada total"),
+                    "ENTRADA_JAMON": st.column_config.NumberColumn("Entrada jamón"),
+                    "ENTRADA_PALETA": st.column_config.NumberColumn("Entrada paleta"),
                     "LOTES_ENTRADA": st.column_config.NumberColumn("Lotes entrada"),
-                    "SALIDA_UNDS": st.column_config.NumberColumn("Salida (unds)"),
+                    "SALIDA_UNDS": st.column_config.NumberColumn("Salida total"),
+                    "SALIDA_JAMON": st.column_config.NumberColumn("Salida jamón"),
+                    "SALIDA_PALETA": st.column_config.NumberColumn("Salida paleta"),
                     "LOTES_SALIDA": st.column_config.NumberColumn("Lotes salida"),
                 }
             )
@@ -1067,7 +1097,7 @@ if uploaded_file is not None:
             )
         else:
             st.info("No se puede construir el resumen diario: faltan columnas UNDS / ENTRADA_SAL / SALIDA_SAL.")
-
+            
         # ===============================
         # Gráfico entradas/salidas
         # ===============================
