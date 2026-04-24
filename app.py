@@ -986,6 +986,17 @@ if uploaded_file is not None:
         df_editable = df_guardar.copy()
 
         # ===============================
+        # Descargar Excel final
+        # ===============================
+        excel_bytes = generar_excel(df_editable, "planificacion_lotes.xlsx")
+        st.download_button(
+            label="💾 Descargar Excel con planificación",
+            data=excel_bytes,
+            file_name="planificacion_lotes.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        # ===============================
         # Resumen diario
         # ===============================
         st.subheader("📅 Resumen diario · Entrada y salida de SAL")
@@ -1314,14 +1325,3 @@ if uploaded_file is not None:
                     file_name="sugerencias_lotes_no_encajan.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-
-        # ===============================
-        # Descargar Excel final
-        # ===============================
-        excel_bytes = generar_excel(df_editable, "planificacion_lotes.xlsx")
-        st.download_button(
-            label="💾 Descargar Excel con planificación",
-            data=excel_bytes,
-            file_name="planificacion_lotes.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
