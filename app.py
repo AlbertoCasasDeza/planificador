@@ -442,7 +442,7 @@ def planificar_filas_na(
     _aplicar_entrada_comun_para_grupo(["JBSPRCLC-MEX"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JCIVRROD-MEX"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JBCPRCLC-MEX"], marcar_si_falla=False)
-    _aplicar_entrada_comun_para_grupo(["JCIVR USA ORES"], marcar_si_falla=False)
+    _aplicar_entrada_comun_para_grupo(["JCIVR ORES USA"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JBSPR ORES USA"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JCIVR-USA"], marcar_si_falla=False)
     _aplicar_entrada_comun_para_grupo(["JCIVRCOMARCA-MEX"], marcar_si_falla=False)
