@@ -600,7 +600,7 @@ def planificar_filas_na(
                                 0 if (nitr_lote is not None and nitrif_counts.get(nitr_lote, 0) > 0) else 1
                             )
 
-                            score = (cost_tipo, cost_nitr, entrada)
+                            score = (entrada, cost_tipo, cost_nitr)
                             candidatos.append((score, entrada, salida))
 
                 entrada = siguiente_habil(entrada)
