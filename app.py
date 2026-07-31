@@ -1010,178 +1010,176 @@ if uploaded_file is not None:
         # ===============================
         # Resumen diario
         # ===============================
-# ===============================
-# Resumen diario
-# ===============================
-st.subheader("📅 Resumen diario · Entrada y salida de SAL")
 
-required = {"UNDS", "ENTRADA_SAL", "SALIDA_SAL"}
-if required.issubset(df_editable.columns):
-    tmp = df_editable.copy()
+        st.subheader("📅 Resumen diario · Entrada y salida de SAL")
 
-    tmp["ENTRADA_SAL"] = pd.to_datetime(tmp["ENTRADA_SAL"], errors="coerce").dt.normalize()
-    tmp["SALIDA_SAL"] = pd.to_datetime(tmp["SALIDA_SAL"], errors="coerce").dt.normalize()
-    tmp["UNDS"] = pd.to_numeric(tmp["UNDS"], errors="coerce").fillna(0).astype(int)
+        required = {"UNDS", "ENTRADA_SAL", "SALIDA_SAL"}
+        if required.issubset(df_editable.columns):
+            tmp = df_editable.copy()
 
-    has_lote = "LOTE" in tmp.columns
-    has_producto = "PRODUCTO" in tmp.columns
+            tmp["ENTRADA_SAL"] = pd.to_datetime(tmp["ENTRADA_SAL"], errors="coerce").dt.normalize()
+            tmp["SALIDA_SAL"] = pd.to_datetime(tmp["SALIDA_SAL"], errors="coerce").dt.normalize()
+            tmp["UNDS"] = pd.to_numeric(tmp["UNDS"], errors="coerce").fillna(0).astype(int)
 
-    if has_producto:
-        tmp["PRODUCTO_NORM"] = tmp["PRODUCTO"].apply(norm_producto)
+            has_lote = "LOTE" in tmp.columns
+            has_producto = "PRODUCTO" in tmp.columns
 
-        # Clasificación por PRODUCTO:
-        # JB... = jamón blanco
-        # JC... = jamón ibérico
-        # P...  = paleta
-        tmp["ES_JAMON"] = tmp["PRODUCTO_NORM"].str.startswith("J")
-        tmp["ES_JAMON_BLANCO"] = tmp["PRODUCTO_NORM"].str.startswith("JB")
-        tmp["ES_JAMON_IBERICO"] = tmp["PRODUCTO_NORM"].str.startswith("JC")
-        tmp["ES_PALETA"] = tmp["PRODUCTO_NORM"].str.startswith("P")
-    else:
-        tmp["ES_JAMON"] = False
-        tmp["ES_JAMON_BLANCO"] = False
-        tmp["ES_JAMON_IBERICO"] = False
-        tmp["ES_PALETA"] = False
+            if has_producto:
+                tmp["PRODUCTO_NORM"] = tmp["PRODUCTO"].apply(norm_producto)
 
-    tmp["UNDS_JAMON"] = tmp["UNDS"].where(tmp["ES_JAMON"], 0)
-    tmp["UNDS_JAMON_BLANCO"] = tmp["UNDS"].where(tmp["ES_JAMON_BLANCO"], 0)
-    tmp["UNDS_JAMON_IBERICO"] = tmp["UNDS"].where(tmp["ES_JAMON_IBERICO"], 0)
-    tmp["UNDS_PALETA"] = tmp["UNDS"].where(tmp["ES_PALETA"], 0)
+                # Clasificación por PRODUCTO:
+                # JB... = jamón blanco
+                # JC... = jamón ibérico
+                # P...  = paleta
+                tmp["ES_JAMON"] = tmp["PRODUCTO_NORM"].str.startswith("J")
+                tmp["ES_JAMON_BLANCO"] = tmp["PRODUCTO_NORM"].str.startswith("JB")
+                tmp["ES_JAMON_IBERICO"] = tmp["PRODUCTO_NORM"].str.startswith("JC")
+                tmp["ES_PALETA"] = tmp["PRODUCTO_NORM"].str.startswith("P")
+            else:
+                tmp["ES_JAMON"] = False
+                tmp["ES_JAMON_BLANCO"] = False
+                tmp["ES_JAMON_IBERICO"] = False
+                tmp["ES_PALETA"] = False
 
-    # -------------------------------
-    # Entradas por día
-    # -------------------------------
-    ent_df = tmp.dropna(subset=["ENTRADA_SAL"]).copy()
+            tmp["UNDS_JAMON"] = tmp["UNDS"].where(tmp["ES_JAMON"], 0)
+            tmp["UNDS_JAMON_BLANCO"] = tmp["UNDS"].where(tmp["ES_JAMON_BLANCO"], 0)
+            tmp["UNDS_JAMON_IBERICO"] = tmp["UNDS"].where(tmp["ES_JAMON_IBERICO"], 0)
+            tmp["UNDS_PALETA"] = tmp["UNDS"].where(tmp["ES_PALETA"], 0)
 
-    if not ent_df.empty:
-        if has_lote:
-            ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
-                ENTRADA_UNDS=("UNDS", "sum"),
-                ENTRADA_JAMON=("UNDS_JAMON", "sum"),
-                ENTRADA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
-                ENTRADA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
-                ENTRADA_PALETA=("UNDS_PALETA", "sum"),
-                LOTES_ENTRADA=("LOTE", "nunique"),
+            # -------------------------------
+            # Entradas por día
+            # -------------------------------
+            ent_df = tmp.dropna(subset=["ENTRADA_SAL"]).copy()
+
+            if not ent_df.empty:
+                if has_lote:
+                    ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
+                        ENTRADA_UNDS=("UNDS", "sum"),
+                        ENTRADA_JAMON=("UNDS_JAMON", "sum"),
+                        ENTRADA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
+                        ENTRADA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
+                        ENTRADA_PALETA=("UNDS_PALETA", "sum"),
+                        LOTES_ENTRADA=("LOTE", "nunique"),
+                    )
+                else:
+                    ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
+                        ENTRADA_UNDS=("UNDS", "sum"),
+                        ENTRADA_JAMON=("UNDS_JAMON", "sum"),
+                        ENTRADA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
+                        ENTRADA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
+                        ENTRADA_PALETA=("UNDS_PALETA", "sum"),
+                        LOTES_ENTRADA=("UNDS", "size"),
+                    )
+            else:
+                ent_daily = pd.DataFrame(columns=[
+                    "ENTRADA_UNDS",
+                    "ENTRADA_JAMON",
+                    "ENTRADA_JAMON_BLANCO",
+                    "ENTRADA_JAMON_IBERICO",
+                    "ENTRADA_PALETA",
+                    "LOTES_ENTRADA"
+                ])
+
+            # -------------------------------
+            # Salidas por día
+            # -------------------------------
+            sal_df = tmp.dropna(subset=["SALIDA_SAL"]).copy()
+
+            if not sal_df.empty:
+                if has_lote:
+                    sal_daily = sal_df.groupby("SALIDA_SAL").agg(
+                        SALIDA_UNDS=("UNDS", "sum"),
+                        SALIDA_JAMON=("UNDS_JAMON", "sum"),
+                        SALIDA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
+                        SALIDA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
+                        SALIDA_PALETA=("UNDS_PALETA", "sum"),
+                        LOTES_SALIDA=("LOTE", "nunique"),
+                    )
+                else:
+                    sal_daily = sal_df.groupby("SALIDA_SAL").agg(
+                        SALIDA_UNDS=("UNDS", "sum"),
+                        SALIDA_JAMON=("UNDS_JAMON", "sum"),
+                        SALIDA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
+                        SALIDA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
+                        SALIDA_PALETA=("UNDS_PALETA", "sum"),
+                        LOTES_SALIDA=("UNDS", "size"),
+                    )
+            else:
+                sal_daily = pd.DataFrame(columns=[
+                    "SALIDA_UNDS",
+                    "SALIDA_JAMON",
+                    "SALIDA_JAMON_BLANCO",
+                    "SALIDA_JAMON_IBERICO",
+                    "SALIDA_PALETA",
+                    "LOTES_SALIDA"
+                ])
+
+            # -------------------------------
+            # Unión entrada + salida
+            # -------------------------------
+            df_resumen_dia = (
+                pd.concat([ent_daily, sal_daily], axis=1)
+                .fillna(0)
+                .reset_index()
+            )
+
+            first_col = df_resumen_dia.columns[0]
+            df_resumen_dia = df_resumen_dia.rename(columns={first_col: "FECHA"})
+
+            for c in [
+                "ENTRADA_UNDS",
+                "ENTRADA_JAMON",
+                "ENTRADA_JAMON_BLANCO",
+                "ENTRADA_JAMON_IBERICO",
+                "ENTRADA_PALETA",
+                "LOTES_ENTRADA",
+                "SALIDA_UNDS",
+                "SALIDA_JAMON",
+                "SALIDA_JAMON_BLANCO",
+                "SALIDA_JAMON_IBERICO",
+                "SALIDA_PALETA",
+                "LOTES_SALIDA"
+            ]:
+                if c in df_resumen_dia.columns:
+                    df_resumen_dia[c] = pd.to_numeric(
+                        df_resumen_dia[c],
+                        errors="coerce"
+                    ).fillna(0).astype(int)
+
+            df_resumen_dia = df_resumen_dia.sort_values("FECHA").reset_index(drop=True)
+
+            st.dataframe(
+                df_resumen_dia,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "FECHA": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
+
+                    "ENTRADA_UNDS": st.column_config.NumberColumn("Entrada total"),
+                    "ENTRADA_JAMON": st.column_config.NumberColumn("Entrada jamón total"),
+                    "ENTRADA_JAMON_BLANCO": st.column_config.NumberColumn("Entrada jamón blanco"),
+                    "ENTRADA_JAMON_IBERICO": st.column_config.NumberColumn("Entrada jamón ibérico"),
+                    "ENTRADA_PALETA": st.column_config.NumberColumn("Entrada paleta"),
+                    "LOTES_ENTRADA": st.column_config.NumberColumn("Lotes entrada"),
+
+                    "SALIDA_UNDS": st.column_config.NumberColumn("Salida total"),
+                    "SALIDA_JAMON": st.column_config.NumberColumn("Salida jamón total"),
+                    "SALIDA_JAMON_BLANCO": st.column_config.NumberColumn("Salida jamón blanco"),
+                    "SALIDA_JAMON_IBERICO": st.column_config.NumberColumn("Salida jamón ibérico"),
+                    "SALIDA_PALETA": st.column_config.NumberColumn("Salida paleta"),
+                    "LOTES_SALIDA": st.column_config.NumberColumn("Lotes salida"),
+                }
+            )
+
+            resumen_xlsx = generar_excel(df_resumen_dia, "resumen_diario_sal.xlsx")
+            st.download_button(
+                "💾 Descargar resumen diario (Excel)",
+                data=resumen_xlsx,
+                file_name="resumen_diario_sal.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         else:
-            ent_daily = ent_df.groupby("ENTRADA_SAL").agg(
-                ENTRADA_UNDS=("UNDS", "sum"),
-                ENTRADA_JAMON=("UNDS_JAMON", "sum"),
-                ENTRADA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
-                ENTRADA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
-                ENTRADA_PALETA=("UNDS_PALETA", "sum"),
-                LOTES_ENTRADA=("UNDS", "size"),
-            )
-    else:
-        ent_daily = pd.DataFrame(columns=[
-            "ENTRADA_UNDS",
-            "ENTRADA_JAMON",
-            "ENTRADA_JAMON_BLANCO",
-            "ENTRADA_JAMON_IBERICO",
-            "ENTRADA_PALETA",
-            "LOTES_ENTRADA"
-        ])
-
-    # -------------------------------
-    # Salidas por día
-    # -------------------------------
-    sal_df = tmp.dropna(subset=["SALIDA_SAL"]).copy()
-
-    if not sal_df.empty:
-        if has_lote:
-            sal_daily = sal_df.groupby("SALIDA_SAL").agg(
-                SALIDA_UNDS=("UNDS", "sum"),
-                SALIDA_JAMON=("UNDS_JAMON", "sum"),
-                SALIDA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
-                SALIDA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
-                SALIDA_PALETA=("UNDS_PALETA", "sum"),
-                LOTES_SALIDA=("LOTE", "nunique"),
-            )
-        else:
-            sal_daily = sal_df.groupby("SALIDA_SAL").agg(
-                SALIDA_UNDS=("UNDS", "sum"),
-                SALIDA_JAMON=("UNDS_JAMON", "sum"),
-                SALIDA_JAMON_BLANCO=("UNDS_JAMON_BLANCO", "sum"),
-                SALIDA_JAMON_IBERICO=("UNDS_JAMON_IBERICO", "sum"),
-                SALIDA_PALETA=("UNDS_PALETA", "sum"),
-                LOTES_SALIDA=("UNDS", "size"),
-            )
-    else:
-        sal_daily = pd.DataFrame(columns=[
-            "SALIDA_UNDS",
-            "SALIDA_JAMON",
-            "SALIDA_JAMON_BLANCO",
-            "SALIDA_JAMON_IBERICO",
-            "SALIDA_PALETA",
-            "LOTES_SALIDA"
-        ])
-
-    # -------------------------------
-    # Unión entrada + salida
-    # -------------------------------
-    df_resumen_dia = (
-        pd.concat([ent_daily, sal_daily], axis=1)
-        .fillna(0)
-        .reset_index()
-    )
-
-    first_col = df_resumen_dia.columns[0]
-    df_resumen_dia = df_resumen_dia.rename(columns={first_col: "FECHA"})
-
-    for c in [
-        "ENTRADA_UNDS",
-        "ENTRADA_JAMON",
-        "ENTRADA_JAMON_BLANCO",
-        "ENTRADA_JAMON_IBERICO",
-        "ENTRADA_PALETA",
-        "LOTES_ENTRADA",
-        "SALIDA_UNDS",
-        "SALIDA_JAMON",
-        "SALIDA_JAMON_BLANCO",
-        "SALIDA_JAMON_IBERICO",
-        "SALIDA_PALETA",
-        "LOTES_SALIDA"
-    ]:
-        if c in df_resumen_dia.columns:
-            df_resumen_dia[c] = pd.to_numeric(
-                df_resumen_dia[c],
-                errors="coerce"
-            ).fillna(0).astype(int)
-
-    df_resumen_dia = df_resumen_dia.sort_values("FECHA").reset_index(drop=True)
-
-    st.dataframe(
-        df_resumen_dia,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "FECHA": st.column_config.DateColumn("Fecha", format="YYYY-MM-DD"),
-
-            "ENTRADA_UNDS": st.column_config.NumberColumn("Entrada total"),
-            "ENTRADA_JAMON": st.column_config.NumberColumn("Entrada jamón total"),
-            "ENTRADA_JAMON_BLANCO": st.column_config.NumberColumn("Entrada jamón blanco"),
-            "ENTRADA_JAMON_IBERICO": st.column_config.NumberColumn("Entrada jamón ibérico"),
-            "ENTRADA_PALETA": st.column_config.NumberColumn("Entrada paleta"),
-            "LOTES_ENTRADA": st.column_config.NumberColumn("Lotes entrada"),
-
-            "SALIDA_UNDS": st.column_config.NumberColumn("Salida total"),
-            "SALIDA_JAMON": st.column_config.NumberColumn("Salida jamón total"),
-            "SALIDA_JAMON_BLANCO": st.column_config.NumberColumn("Salida jamón blanco"),
-            "SALIDA_JAMON_IBERICO": st.column_config.NumberColumn("Salida jamón ibérico"),
-            "SALIDA_PALETA": st.column_config.NumberColumn("Salida paleta"),
-            "LOTES_SALIDA": st.column_config.NumberColumn("Lotes salida"),
-        }
-    )
-
-    resumen_xlsx = generar_excel(df_resumen_dia, "resumen_diario_sal.xlsx")
-    st.download_button(
-        "💾 Descargar resumen diario (Excel)",
-        data=resumen_xlsx,
-        file_name="resumen_diario_sal.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-else:
-    st.info("No se puede construir el resumen diario: faltan columnas UNDS / ENTRADA_SAL / SALIDA_SAL.")
+            st.info("No se puede construir el resumen diario: faltan columnas UNDS / ENTRADA_SAL / SALIDA_SAL.")
         # ===============================
         # Gráfico entradas/salidas
         # ===============================
