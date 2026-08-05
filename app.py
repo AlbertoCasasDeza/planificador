@@ -1187,106 +1187,207 @@ if uploaded_file is not None:
 
         fig = go.Figure()
 
-        df_e = df_editable.dropna(subset=["ENTRADA_SAL", "UNDS"]) if "ENTRADA_SAL" in df_editable.columns else pd.DataFrame()
-        df_s = df_editable.dropna(subset=["SALIDA_SAL", "UNDS"]) if "SALIDA_SAL" in df_editable.columns else pd.DataFrame()
-
-        pivot_e = (
-            df_e.groupby(["ENTRADA_SAL", "LOTE"])["UNDS"]
-            .sum()
-            .unstack(fill_value=0)
-            .sort_index()
-            if not df_e.empty and {"ENTRADA_SAL", "LOTE", "UNDS"}.issubset(df_e.columns)
-            else pd.DataFrame()
-        )
-        pivot_s = (
-            df_s.groupby(["SALIDA_SAL", "LOTE"])["UNDS"]
-            .sum()
-            .unstack(fill_value=0)
-            .sort_index()
-            if not df_s.empty and {"SALIDA_SAL", "LOTE", "UNDS"}.issubset(df_s.columns)
+        df_e = (
+            df_editable.dropna(subset=["ENTRADA_SAL", "UNDS"]).copy()
+            if "ENTRADA_SAL" in df_editable.columns
             else pd.DataFrame()
         )
 
-        if not pivot_e.empty:
-            for lote in pivot_e.columns:
-                y_vals = pivot_e[lote]
-                if (y_vals > 0).any():
-                    fig.add_trace(go.Bar(
-                        x=pivot_e.index,
-                        y=y_vals,
-                        name=f"Lote {lote}",
-                        offsetgroup="entrada",
-                        legendgroup=f"lote-{lote}",
-                        marker_color="blue",
-                        marker_line_color="white",
-                        marker_line_width=1.2,
-                        hovertemplate="Fecha: %{x|%Y-%m-%d}<br>Lote: " + str(lote) + "<br>UNDS: %{y}<extra></extra>",
-                        showlegend=True
-                    ))
+        df_s = (
+            df_editable.dropna(subset=["SALIDA_SAL", "UNDS"]).copy()
+            if "SALIDA_SAL" in df_editable.columns
+            else pd.DataFrame()
+        )
+    
+        if not df_e.empty:
+            df_e["ENTRADA_SAL"] = pd.to_datetime(df_e["ENTRADA_SAL"], errors="coerce").dt.normalize()
+            df_e["UNDS"] = pd.to_numeric(df_e["UNDS"], errors="coerce").fillna(0).astype(int)
 
-        if not pivot_s.empty:
-            for lote in pivot_s.columns:
-                y_vals = pivot_s[lote]
-                if (y_vals > 0).any():
-                    fig.add_trace(go.Bar(
-                        x=pivot_s.index,
-                        y=y_vals,
-                        name=f"Lote {lote} (Salida)",
-                        offsetgroup="salida",
-                        legendgroup=f"lote-{lote}",
-                        marker_color="orange",
-                        marker_line_color="white",
-                        marker_line_width=1.2,
-                        hovertemplate="Fecha: %{x|%Y-%m-%d}<br>Lote: " + str(lote) + "<br>UNDS: %{y}<extra></extra>",
-                        showlegend=False
-                    ))
+        if not df_s.empty:
+            df_s["SALIDA_SAL"] = pd.to_datetime(df_s["SALIDA_SAL"], errors="coerce").dt.normalize()
+            df_s["UNDS"] = pd.to_numeric(df_s["UNDS"], errors="coerce").fillna(0).astype(int)
 
-        label_shift = pd.Timedelta(hours=8)
-        annotations = []
-
-        tot_e = pd.DataFrame()
-        tot_s = pd.DataFrame()
+        # -------------------------------
+        # Totales de entrada con detalle de lotes
+        # -------------------------------
         if not df_e.empty:
             if "LOTE" in df_e.columns:
-                tot_e = df_e.groupby("ENTRADA_SAL").agg(UNDS=("UNDS", "sum"), LOTES=("LOTE", "nunique")).reset_index()
+                ent_detalle = (
+                    df_e.groupby(["ENTRADA_SAL", "LOTE"])["UNDS"]
+                    .sum()
+                    .reset_index()
+                    .sort_values(["ENTRADA_SAL", "LOTE"])
+                )
+
+                ent_daily = (
+                    df_e.groupby("ENTRADA_SAL")
+                    .agg(
+                        UNDS=("UNDS", "sum"),
+                        LOTES=("LOTE", "nunique")
+                    )
+                    .reset_index()
+                )
+
+                detalle_entrada = (
+                    ent_detalle
+                    .groupby("ENTRADA_SAL")
+                    .apply(
+                        lambda g: "<br>".join(
+                            [f"Lote {r['LOTE']}: {int(r['UNDS'])} unds" for _, r in g.iterrows()]
+                        ),
+                        include_groups=False
+                    )
+                    .reset_index(name="DETALLE")
+                )
+
+                ent_daily = ent_daily.merge(detalle_entrada, on="ENTRADA_SAL", how="left")
             else:
-                tot_e = df_e.groupby("ENTRADA_SAL").agg(UNDS=("UNDS", "sum"), LOTES=("UNDS", "size")).reset_index()
+                ent_daily = (
+                    df_e.groupby("ENTRADA_SAL")
+                    .agg(
+                        UNDS=("UNDS", "sum"),
+                        LOTES=("UNDS", "size")
+                    )
+                    .reset_index()
+                )
+                ent_daily["DETALLE"] = ""
+        else:
+            ent_daily = pd.DataFrame(columns=["ENTRADA_SAL", "UNDS", "LOTES", "DETALLE"])
+
+        # -------------------------------
+        # Totales de salida con detalle de lotes
+        # -------------------------------
         if not df_s.empty:
             if "LOTE" in df_s.columns:
-                tot_s = df_s.groupby("SALIDA_SAL").agg(UNDS=("UNDS", "sum"), LOTES=("LOTE", "nunique")).reset_index()
-            else:
-                tot_s = df_s.groupby("SALIDA_SAL").agg(UNDS=("UNDS", "sum"), LOTES=("UNDS", "size")).reset_index()
+                sal_detalle = (
+                    df_s.groupby(["SALIDA_SAL", "LOTE"])["UNDS"]
+                    .sum()
+                    .reset_index()
+                    .sort_values(["SALIDA_SAL", "LOTE"])
+                )
 
-        max_e = int(tot_e["UNDS"].max()) if not tot_e.empty else 0
-        max_s = int(tot_s["UNDS"].max()) if not tot_s.empty else 0
+                sal_daily = (
+                    df_s.groupby("SALIDA_SAL")
+                    .agg(
+                        UNDS=("UNDS", "sum"),
+                        LOTES=("LOTE", "nunique")
+                    )
+                    .reset_index()
+                )
+
+                detalle_salida = (
+                    sal_detalle
+                    .groupby("SALIDA_SAL")
+                    .apply(
+                        lambda g: "<br>".join(
+                            [f"Lote {r['LOTE']}: {int(r['UNDS'])} unds" for _, r in g.iterrows()]
+                        ),
+                        include_groups=False
+                    )
+                    .reset_index(name="DETALLE")
+                )
+
+                sal_daily = sal_daily.merge(detalle_salida, on="SALIDA_SAL", how="left")
+            else:
+                sal_daily = (
+                    df_s.groupby("SALIDA_SAL")
+                    .agg(
+                        UNDS=("UNDS", "sum"),
+                        LOTES=("UNDS", "size")
+                    )
+                    .reset_index()
+                )
+                sal_daily["DETALLE"] = ""
+        else:
+            sal_daily = pd.DataFrame(columns=["SALIDA_SAL", "UNDS", "LOTES", "DETALLE"])
+
+        # -------------------------------
+        # Barras lado a lado
+        # -------------------------------
+        if not ent_daily.empty:
+            fig.add_trace(go.Bar(
+                x=ent_daily["ENTRADA_SAL"],
+                y=ent_daily["UNDS"],
+                name="Entrada",
+                marker_color="blue",
+                customdata=ent_daily[["LOTES", "DETALLE"]],
+                hovertemplate=(
+                    "<b>Entrada</b><br>"
+                    "Fecha: %{x|%Y-%m-%d}<br>"
+                    "Total: %{y} unds<br>"
+                    "Lotes: %{customdata[0]}<br><br>"
+                    "%{customdata[1]}"
+                    "<extra></extra>"
+                )
+            ))
+
+        if not sal_daily.empty:
+            fig.add_trace(go.Bar(
+                x=sal_daily["SALIDA_SAL"],
+                y=sal_daily["UNDS"],
+                name="Salida",
+                marker_color="orange",
+                customdata=sal_daily[["LOTES", "DETALLE"]],
+                hovertemplate=(
+                    "<b>Salida</b><br>"
+                    "Fecha: %{x|%Y-%m-%d}<br>"
+                    "Total: %{y} unds<br>"
+                    "Lotes: %{customdata[0]}<br><br>"
+                    "%{customdata[1]}"
+                    "<extra></extra>"
+                )
+            ))
+
+        # -------------------------------
+        # Etiquetas encima de barras
+        # -------------------------------
+        annotations = []
+
+        max_e = int(ent_daily["UNDS"].max()) if not ent_daily.empty else 0
+        max_s = int(sal_daily["UNDS"].max()) if not sal_daily.empty else 0
         max_y = max(max_e, max_s) or 1
+
+        label_shift = pd.Timedelta(hours=8)
 
         def add_two_labels(x_dt, y_val, lots_count, is_entry=True):
             x_pos = x_dt - label_shift if is_entry else x_dt + label_shift
             y_base = max(y_val, max_y * 0.02)
+
             annotations.append(dict(
-                x=x_pos, y=y_base, xref="x", yref="y",
+                x=x_pos,
+                y=y_base,
+                xref="x",
+                yref="y",
                 text=f"<b>{int(y_val)}</b>",
-                showarrow=False, yshift=28,
-                align="center", font=dict(size=13, color="black")
-            ))
-            annotations.append(dict(
-                x=x_pos, y=y_base, xref="x", yref="y",
-                text=f"{int(lots_count)} lotes",
-                showarrow=False, yshift=12,
-                align="center", font=dict(size=11, color="gray")
+                showarrow=False,
+                yshift=28,
+                align="center",
+                font=dict(size=13, color="black")
             ))
 
-        if not tot_e.empty:
-            for _, r in tot_e.iterrows():
+            annotations.append(dict(
+                x=x_pos,
+                y=y_base,
+                xref="x",
+                yref="y",
+                text=f"{int(lots_count)} lotes",
+                showarrow=False,
+                yshift=12,
+                align="center",
+                font=dict(size=11, color="gray")
+            ))
+
+        if not ent_daily.empty:
+            for _, r in ent_daily.iterrows():
                 add_two_labels(r["ENTRADA_SAL"], r["UNDS"], r["LOTES"], is_entry=True)
-        if not tot_s.empty:
-            for _, r in tot_s.iterrows():
+
+        if not sal_daily.empty:
+            for _, r in sal_daily.iterrows():
                 add_two_labels(r["SALIDA_SAL"], r["UNDS"], r["LOTES"], is_entry=False)
 
         ticks = pd.Index(sorted(set(
-            (pivot_e.index.tolist() if not pivot_e.empty else []) +
-            (pivot_s.index.tolist() if not pivot_s.empty else [])
+            (ent_daily["ENTRADA_SAL"].tolist() if not ent_daily.empty else []) +
+            (sal_daily["SALIDA_SAL"].tolist() if not sal_daily.empty else [])
         )))
 
         fig.update_layout(
@@ -1302,15 +1403,17 @@ if uploaded_file is not None:
             bargroupgap=0.12,
             annotations=annotations,
             legend=dict(
-                itemclick="toggleothers",
-                itemdoubleclick="toggle",
-                groupclick="togglegroup"
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
             )
         )
+
         fig.update_yaxes(range=[0, max_y * 1.25])
 
         st.plotly_chart(fig, use_container_width=True)
-
         # ===============================
         # Estabilización
         # ===============================
