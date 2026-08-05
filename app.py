@@ -1290,7 +1290,7 @@ if uploaded_file is not None:
         )))
 
         fig.update_layout(
-            barmode="relative",
+            barmode="group",
             xaxis_title="Fecha",
             yaxis_title="Unidades",
             xaxis=dict(
